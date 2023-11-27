@@ -83,7 +83,7 @@
        <item>
         <widget class="QLabel" name="label">
          <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 170, 127);</string>
+          <string notr="true">image: url(:/newPrefix/hochetsya.png);;</string>
          </property>
          <property name="text">
           <string/>
