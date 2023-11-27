@@ -1,6 +1,5 @@
-import sys
-
 import sqlite3
+import sys
 
 from PyQt5 import uic
 from PyQt5.QtCore import *
@@ -12,16 +11,11 @@ from PyQt5.QtWidgets import *
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
-# База данных
-con = sqlite3.connect("playlist.db")
-
-# Создание курсора
-cur = con.cursor()
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.previous_tracks = None
         uic.loadUi('please_be_final.ui', self)
         self.init_UI()
         self.action_methods_player = {
@@ -41,6 +35,10 @@ class MainWindow(QMainWindow):
         self.Volume_label.setText('100')
         self.Volume_dial.setValue(100)
         self.Volume_dial.setDisabled(True)
+        self.con = sqlite3.connect("playlist.db")
+
+        # Создание курсора
+        self.cur = self.con.cursor()
 
         self.previous_tracks.itemClicked.connect(self.on_item_clicked)
 
@@ -99,12 +97,15 @@ class MainWindow(QMainWindow):
         self.timer_of_timeline.start(1000)
 
     def Open_File(self):
-        fileName, for_What = QFileDialog.getOpenFileName(self, "Open", '.', "All Files (*);;")
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open", '.', "All Files (*);;")
         # "Files (*.mp3, *.wav, *.ogg, *.flac, *.flac, *.aac, *.m4a, *.alac, *.wma, *.aiff, *.opus)"
         # self.load_mp3(fileName)
         self.previous_tracks.addItem(fileName)
         self.current_duration = self.player.duration()
-        result = cur.execute("""INSERT INTO tracks(playlist_id, title, track_link) VALUES('1', for_What, filename)""").fetchall()
+        self.cur.execute("""INSERT INTO tracks(playlist_id, title, track_link) VALUES('1', ?, ?)""",
+                             (fileName[fileName.index('Finally') + 8:], fileName)).fetchall()
+        # self.cur.close()
+        self.con.commit()
 
     def load_mp3(self, filename):
         media = QUrl.fromLocalFile(filename)
@@ -195,6 +196,7 @@ class MainWindow(QMainWindow):
         minutes_remain = int(remain // 60)
         seconds_remain = int((remain % 60))
         self.RemainTime_label.setText(f'-{minutes_remain:02}:{seconds_remain:02}')
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
