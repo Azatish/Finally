@@ -7,7 +7,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import *
 from PyQt5.QtWidgets import *
 
-from export_txts import PlaylistExporter
+from export_files import PlaylistExporter_file
+from export_txts import PlaylistExporter_txt
 
 
 def except_hook(cls, exception, traceback):
@@ -127,6 +128,7 @@ class MainWindow(QMainWindow):
         # создание messagebox-ов
         self.message_box_isMedia = QMessageBox(self)
         self.message_box_new_playlist = QMessageBox(self)
+        self.message_box_about_export = QMessageBox(self)
 
         #
         self.timer_of_timeline = QTimer()
@@ -155,6 +157,8 @@ class MainWindow(QMainWindow):
         media = QUrl.fromLocalFile(filename)
         content = QMediaContent(media)
         self.player.setMedia(content)
+        self.timelime_slider.setMaximum(self.player.duration())
+        self.timelime_slider.valueChanged.connect(self.on_slider_value_changed)
 
     def set_volume(self):  # установить громкость музыки
         value = self.Volume_dial.value()
@@ -192,13 +196,29 @@ class MainWindow(QMainWindow):
         self.message_box_isMedia.button(QMessageBox.Ok).setEnabled(True)
 
     def export_tracks_as_txt(self):  # экспорт треков плейлиста в txt файл
-        widget = PlaylistExporter()
+        widget = PlaylistExporter_txt()
         widget.show()
+
     def export_tracks_as_files(self):  # экспорт треков плейлиста в папку
-        pass
+        widget = PlaylistExporter_file()
+        widget.show()
 
     def infoExport(self):  # информация о экспорте треков
-        pass
+        self.message_box_about_export.setWindowTitle("Важное сообщение")
+        # Устанавливаем текст сообщения
+        self.message_box_about_export.setText(
+            "Моя программа мп3-плеер предлагает удобную функцию экспорта файлов в текстовый формат, а также создания "
+            "копии в определенной папке. Этот важный функционал позволяет сохранять информацию о ваших аудиофайлах в "
+            "читаемом и удобном для обработки формате.' Выбирая экспорт в текстовый файл, вы можете создать подробное "
+            "описание своих музыкальных композиций, включая информацию о названии, исполнителе, альбоме, годе выпуска и "
+            "других дополнительных данных. Экспортированный текстовый файл можно легко редактировать и делиться с другими "
+            "пользователями или использовать в качестве резервной копии для вашей музыкальной коллекции. Копирование файлов "
+            "в определенную папку также позволяет вам организовать вашу музыкальную библиотеку по вашим предпочтениям. Вы "
+            "можете выбрать папку, которая будет содержать полные копии ваших файлов, и управлять этими копиями на ваше "
+            "усмотрение. Это удобно, когда вы хотите иметь дополнительные копии файлов или перенести их на другие устройства.")
+        # Добавляем кнопку "ОК" для закрытия окна
+        self.message_box_about_export.addButton(QMessageBox.Ok)
+        self.message_box_about_export.show()
 
     def about_programm(self):  # информация о программе
         pass
@@ -207,8 +227,8 @@ class MainWindow(QMainWindow):
         print(item.text())
         self.load_mp3(item.text())
 
-    def on_slider_value_changed(self, value):  # изменение громкости player-а
-        self.player.setPosition(value)
+    def on_slider_value_changed(self, value):  # перемещение по треку в player-е
+        self.timelime_slider.setValue(value)
 
     def update_label_value_slider(self):  # текущее время трека
         self.current_duration = self.player.duration() / 1000
@@ -234,7 +254,7 @@ class MainWindow(QMainWindow):
 
     def track_clicked(self, item, column):
         track_link = item.toolTip(column)
-        print("Track Path:", track_link)
+        self.load_mp3(track_link)
 
     def show_context_menu(self, position):  # контекстное меню для добавления треков в плейлист
         # Определение выбранного элемента
@@ -253,6 +273,12 @@ class MainWindow(QMainWindow):
 
             # Показываем контекстное меню в указанной позиции
             context_menu.exec_(self.tree.mapToGlobal(position))
+
+    def setup_slider(self):
+        self.slider.setSingleStep(1000)
+
+        # Обновить положение слайдера при изменении позиции трека
+        self.player.positionChanged.connect(slider.setValue)
 
 
 if __name__ == "__main__":

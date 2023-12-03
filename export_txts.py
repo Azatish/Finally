@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt
 
 import sqlite3
 
-class PlaylistExporter(QWidget):
+class PlaylistExporter_txt(QWidget):
     def __init__(self):
         super().__init__()
         self.tree = QTreeWidget(self)

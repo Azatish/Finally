@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import QApplication, QFileDialog, QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout
 from PyQt5.QtCore import Qt
-
 import sqlite3
+import sys
+import shutil
 
-class PlaylistExporter(QWidget):
+class PlaylistExporter_file(QWidget):
     def __init__(self):
         super().__init__()
         self.tree = QTreeWidget(self)
@@ -45,30 +46,21 @@ class PlaylistExporter(QWidget):
         self.tree.itemClicked.connect(lambda item, column: self.save_playlist_tracks(item))
 
     def save_playlist_tracks(self, item):
-        file_dialog = QFileDialog()
-        file_dialog.setAcceptMode(QFileDialog.AcceptSave)
-        file_dialog.setWindowTitle("Выберите файл и директорию для экспорта")
-
-        # Получаем путь к выбранному файлу
-        if file_dialog.exec_() == QFileDialog.Accepted:
-            self.file_path = file_dialog.selectedFiles()[0]
-        else:
-            return
-
         arr = []
+        new_arr = []
         # Открываем файл для записи
-        with open(self.file_path, "w") as file:
-            # Получаем и сохраняем имена всех треков выбранного плейлиста
-            for i in range(item.childCount()):
-                track_item = item.child(i)
-                track_name = track_item.text(0)
-                arr.append(track_name)
-        print(arr)
-        
-        self.close()
+        for i in range(item.childCount()):
+            track_item = item.child(i)
+            track_name = track_item.text(0)
+            arr.append(track_name)
+        for el in arr:
+            new_arr += self.con.cursor().execute('''SELECT track_link FROM tracks WHERE title = ?''', (el,)).fetchall()
+        print(new_arr)
 
-if __name__ == '__main__':
-    app = QApplication([])
-    widget = PlaylistExporter()
-    widget.show()
-    app.exec_()
+        file_dialog = QFileDialog()
+        self.file_path = file_dialog.getExistingDirectory(self, "Выбрать папку")
+        print(self.file_path)
+
+        for file_name in new_arr:
+            shutil.copy(str(file_name[0]), self.file_path)
+        self.close()
