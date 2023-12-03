@@ -7,6 +7,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import *
 from PyQt5.QtWidgets import *
 
+from export_txts import PlaylistExporter
+
 
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
@@ -49,8 +51,6 @@ class MainWindow(QMainWindow):
                     track_item.setFlags(track_item.flags() | ~Qt.ItemIsEditable)
 
         self.tree.itemClicked.connect(self.track_clicked)
-        button = QTreeWidgetItem(self.tree, ['Create New Playlist'])
-        button.setFlags(button.flags() & ~Qt.ItemIsEditable)
         self.tree.show()
 
     def init_UI(self):
@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         self.Volume_dial.setValue(100)
         self.Volume_dial.valueChanged.connect(self.set_volume)
 
-        # db
+        # db + cursor
         self.con = sqlite3.connect("playlist.db")
         self.cur = self.con.cursor()
 
@@ -135,7 +135,7 @@ class MainWindow(QMainWindow):
 
         # подключаем к плейлистам возможность при нажатии на правую кнопку мыши открывать контексное меню
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tree.customContextMenuRequested.connect(show_context_menu)
+        self.tree.customContextMenuRequested.connect(self.show_context_menu)
 
     def Open_File(self):  # открытие файла
         try:
@@ -191,22 +191,9 @@ class MainWindow(QMainWindow):
     def enable_message_box_isMedia_button(self):  # Включаем кнопку у MessageBox
         self.message_box_isMedia.button(QMessageBox.Ok).setEnabled(True)
 
-    # def keyPressEvent(self, event):
-    #     # Реализация управления стрелочками self.VolumeDial😀
-    #     if event.key() == Qt.Key_Left or event.key() == Qt.Key_Down:
-    #         if self.Volume_dial.value() == self.Volume_dial.minimum():
-    #             self.Volume_dial.setValue(self.Volume_dial.maximum())
-    #         else:
-    #             self.Volume_dial.setValue(self.Volume_dial.value() - 1)
-    #     if event.key() == Qt.Key_Right or event.key() == Qt.Key_Up:
-    #         if self.Volume_dial.value() == self.Volume_dial.maximum():
-    #             self.Volume_dial.setValue(self.Volume_dial.minimum())
-    #         else:
-    #             self.Volume_dial.setValue(self.Volume_dial.value() + 1)
-
     def export_tracks_as_txt(self):  # экспорт треков плейлиста в txt файл
-        pass
-
+        widget = PlaylistExporter()
+        widget.show()
     def export_tracks_as_files(self):  # экспорт треков плейлиста в папку
         pass
 
@@ -215,9 +202,6 @@ class MainWindow(QMainWindow):
 
     def about_programm(self):  # информация о программе
         pass
-
-    # def add_to_playlist(self):
-    #     pass
 
     def on_item_clicked(self, item):  # загрузка файла в player
         print(item.text())
@@ -252,25 +236,23 @@ class MainWindow(QMainWindow):
         track_link = item.toolTip(column)
         print("Track Path:", track_link)
 
-    def show_context_menu(position):  # контекстное меню для добавления треков в плейлист
+    def show_context_menu(self, position):  # контекстное меню для добавления треков в плейлист
         # Определение выбранного элемента
-        item = tree_widget.itemAt(position)
+        item = self.tree.itemAt(position)
 
         # Проверка, является ли выбранный элемент главным элементом
         if item and item.parent() is None:
             # Создаем контекстное меню
-            context_menu = QMenu(tree_widget)
+            context_menu = QMenu(self.tree)
 
             # Действия в контекстном меню
-            action1 = QAction("Действие 1", tree_widget)
-            action2 = QAction("Действие 2", tree_widget)
+            action1 = QAction("Добавить трек", self.tree)
 
             # Добавляем действия в контекстное меню
             context_menu.addAction(action1)
-            context_menu.addAction(action2)
 
             # Показываем контекстное меню в указанной позиции
-            context_menu.exec_(tree_widget.mapToGlobal(position))
+            context_menu.exec_(self.tree.mapToGlobal(position))
 
 
 if __name__ == "__main__":
