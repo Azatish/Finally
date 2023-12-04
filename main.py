@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
             fileName, _ = QFileDialog.getOpenFileName(self, "Open", '.', "All Files (*);;")
             # "Files (*.mp3, *.wav, *.ogg, *.flac, *.flac, *.aac, *.m4a, *.alac, *.wma, *.aiff, *.opus)"
             # self.load_mp3(fileName)
-            self.previous_tracks.addItem(fileName)
+            self.previous_tracks.addItem(fileName[fileName.index('Finally') + 8:])
             self.current_duration = self.player.duration()
             self.cur.execute("""INSERT INTO tracks(playlist_id, title, track_link) VALUES('1', ?, ?)""",
                              (fileName[fileName.index('Finally') + 8:], fileName)).fetchall()
@@ -223,8 +223,8 @@ class MainWindow(QMainWindow):
     def about_programm(self):  # информация о программе
         pass
 
-    def on_item_clicked(self, item):  # загрузка файла в player
-        print(item.text())
+    def on_item_clicked(self, item):
+        # загрузка файла в player
         self.load_mp3(item.text())
 
     def on_slider_value_changed(self, value):  # перемещение по треку в player-е
@@ -267,6 +267,7 @@ class MainWindow(QMainWindow):
 
             # Действия в контекстном меню
             action1 = QAction("Добавить трек", self.tree)
+            action1.triggered(self.self_act)
 
             # Добавляем действия в контекстное меню
             context_menu.addAction(action1)
@@ -274,11 +275,14 @@ class MainWindow(QMainWindow):
             # Показываем контекстное меню в указанной позиции
             context_menu.exec_(self.tree.mapToGlobal(position))
 
-    def setup_slider(self):
-        self.slider.setSingleStep(1000)
+    # def setup_slider(self):
+    #     self.slider.setSingleStep(1000)
+    #
+    #     # Обновить положение слайдера при изменении позиции трека
+    #     self.player.positionChanged.connect(slider.setValue)
 
-        # Обновить положение слайдера при изменении позиции трека
-        self.player.positionChanged.connect(slider.setValue)
+    def self_act(self):
+        print('hi')
 
 
 if __name__ == "__main__":
