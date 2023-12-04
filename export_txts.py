@@ -7,6 +7,9 @@ class PlaylistExporter_txt(QWidget):
     def __init__(self):
         super().__init__()
         self.tree = QTreeWidget(self)
+
+        self.tree.setHeaderHidden(True)
+
         layout = QVBoxLayout(self)
 
         layout.addWidget(self.tree)

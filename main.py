@@ -1,11 +1,17 @@
 import sqlite3
+
 import sys
 
+from os.path import basename as bs
+
 from PyQt5 import uic
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtMultimedia import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt, QTimer, QUrl
+from PyQt5.QtGui import QKeySequence, QPixmap
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtWidgets import (QMainWindow, QApplication, QAction, QMessageBox, QTreeWidgetItem, QFileDialog, \
+                             QInputDialog, QMenu)
+
+from mutagen.id3 import ID3
 
 from export_files import PlaylistExporter_file
 from export_txts import PlaylistExporter_txt
@@ -18,9 +24,10 @@ def except_hook(cls, exception, traceback):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.previous_tracks = None
+
         uic.loadUi('please_be_final.ui', self)
         self.init_UI()
+
         self.action_methods_player = {
             'play': self.player.play,
             'pause': self.player.pause,
@@ -29,10 +36,21 @@ class MainWindow(QMainWindow):
         self.init_database()
 
     def init_database(self):  # заполнение QTreeWidget-а актуальными плейлистами из db
+        self.tree.clear()
+        self.tree.setHeaderHidden(True)
+
+        cursor_for_prev_tracks = self.con.cursor()
+        cursor_for_prev_tracks.execute("SELECT track_link FROM tracks WHERE playlist_id = 1")
+        tracks = cursor_for_prev_tracks.fetchall()
+        for track in tracks:
+            track_link = track[0]
+            file_name = bs(track_link)
+            self.previous_tracks.addItem(file_name)
+
         cursor = self.con.cursor()
-        cursor.execute("SELECT id, name FROM playlist_s")
+        cursor.execute("SELECT id, name FROM playlist_s WHERE id <> 1")
         playlists = cursor.fetchall()
-        cursor.execute("SELECT playlist_id, title, track_link FROM tracks")
+        cursor.execute("SELECT playlist_id, title, track_link FROM tracks WHERE playlist_id <> 1")
         tracks = cursor.fetchall()
         playlist_tracks = {}
         for track in tracks:
@@ -49,7 +67,7 @@ class MainWindow(QMainWindow):
                 for track in playlist_tracks[playlist_id]:
                     track_item = QTreeWidgetItem(playlist_item, [track[1]])
                     track_item.setToolTip(0, track[2])
-                    track_item.setFlags(track_item.flags() | ~Qt.ItemIsEditable)
+                    track_item.setFlags(track_item.flags() | Qt.ItemIsSelectable)
 
         self.tree.itemClicked.connect(self.track_clicked)
         self.tree.show()
@@ -118,12 +136,13 @@ class MainWindow(QMainWindow):
         self.Play_btn.clicked.connect(self.play_music)
         self.Pause_btn.clicked.connect(self.pause_music)
         self.Stop_btn.clicked.connect(self.stop_music)
-        # self.add_to_playlist.clicked.connect(self.add_to_playlist)
+        self.exit_btn.clicked.connect(self.exit_music)
 
         # слайдер для перемещения по треку
         self.timelime_slider.setMinimum(0)
-        self.timelime_slider.setMaximum(self.player.duration())
+        # self.timelime_slider.setMaximum(self.player.duration())
         self.timelime_slider.valueChanged.connect(self.on_slider_value_changed)
+        self.timelime_slider.setEnabled(True)
 
         # создание messagebox-ов
         self.message_box_isMedia = QMessageBox(self)
@@ -140,25 +159,34 @@ class MainWindow(QMainWindow):
         self.tree.customContextMenuRequested.connect(self.show_context_menu)
 
     def Open_File(self):  # открытие файла
-        try:
-            fileName, _ = QFileDialog.getOpenFileName(self, "Open", '.', "All Files (*);;")
-            # "Files (*.mp3, *.wav, *.ogg, *.flac, *.flac, *.aac, *.m4a, *.alac, *.wma, *.aiff, *.opus)"
-            # self.load_mp3(fileName)
-            self.previous_tracks.addItem(fileName[fileName.index('Finally') + 8:])
-            self.current_duration = self.player.duration()
-            self.cur.execute("""INSERT INTO tracks(playlist_id, title, track_link) VALUES('1', ?, ?)""",
-                             (fileName[fileName.index('Finally') + 8:], fileName)).fetchall()
-            # self.cur.close()
-            self.con.commit()
-        except ValueError:
-            pass
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open", '.', "All Files (*);;")
+        # "Files (*.mp3, *.wav, *.ogg, *.flac, *.flac, *.aac, *.m4a, *.alac, *.wma, *.aiff, *.opus)"
+        self.previous_tracks.addItem(bs(fileName))
+        self.cur.execute("""INSERT INTO tracks(playlist_id, title, track_link) VALUES('1', ?, ?)""",
+                         (bs(fileName), fileName)).fetchall()
+        print(fileName)
+        # self.cur.close()
+        self.con.commit()
 
     def load_mp3(self, filename):  # загрузить в плеер музыку
         media = QUrl.fromLocalFile(filename)
         content = QMediaContent(media)
         self.player.setMedia(content)
         self.timelime_slider.setMaximum(self.player.duration())
-        self.timelime_slider.valueChanged.connect(self.on_slider_value_changed)
+
+        if filename.split('.')[-1] == 'mp3':
+            audio = ID3(filename)
+            print(audio)
+            pixmap = QPixmap()
+            if 'APIC:' in audio:
+                apic = audio['APIC:'].data
+                pixmap.loadFromData(apic)
+            else:
+                pixmap = QPixmap('background.jpg')
+        else:
+            pixmap = QPixmap('background.jpg')
+        self.label.setPixmap(pixmap.scaled(self.label.size(), Qt.KeepAspectRatio))
+        # self.label.setPixmap(pixmap)
 
     def set_volume(self):  # установить громкость музыки
         value = self.Volume_dial.value()
@@ -166,6 +194,7 @@ class MainWindow(QMainWindow):
         self.player.setVolume(int(value))
 
     def play_music(self):  # играть музыку
+        self.update_labels()
         self.check_isMedia_now('play')
 
     def pause_music(self):  # пауза музыки
@@ -173,6 +202,8 @@ class MainWindow(QMainWindow):
 
     def stop_music(self):  # остановить воспроизведение музыки
         self.check_isMedia_now('stop')
+        self.NowTime_label.setText('00:00')
+        self.RemainTime_label.setText('00:00')
 
     def check_isMedia_now(self, action=None):  # проверка(занят ли плеер в данный момент)
         if self.player.media().isNull():
@@ -220,17 +251,18 @@ class MainWindow(QMainWindow):
         self.message_box_about_export.addButton(QMessageBox.Ok)
         self.message_box_about_export.show()
 
-    def about_programm(self):  # информация о программе
-        pass
-
     def on_item_clicked(self, item):
         # загрузка файла в player
         self.load_mp3(item.text())
 
     def on_slider_value_changed(self, value):  # перемещение по треку в player-е
-        self.timelime_slider.setValue(value)
+        self.timer_of_timeline.stop()
+        # Установка текущей позиции трека в соответствии со значением слайдера
+        self.player.setPosition(value * 1000)
 
     def update_label_value_slider(self):  # текущее время трека
+        self.timelime_slider.setEnabled(True)
+
         self.current_duration = self.player.duration() / 1000
         current_position = self.player.position() / 1000
         minutes_now = int(current_position // 60)
@@ -240,6 +272,8 @@ class MainWindow(QMainWindow):
         minutes_remain = int(remain // 60)
         seconds_remain = int((remain % 60))
         self.RemainTime_label.setText(f'-{minutes_remain:02}:{seconds_remain:02}')
+
+        self.timelime_slider.setValue(int(current_position))
 
     def create_new_playlist(self):
         name, ok = QInputDialog.getText(None, 'Create New Playlist', 'Enter playlist name:')
@@ -266,23 +300,50 @@ class MainWindow(QMainWindow):
             context_menu = QMenu(self.tree)
 
             # Действия в контекстном меню
-            action1 = QAction("Добавить трек", self.tree)
-            action1.triggered(self.self_act)
-
+            self.action1 = QAction("Добавить трек", self.tree)
+            self.action1.triggered.connect(self.do_action)
             # Добавляем действия в контекстное меню
-            context_menu.addAction(action1)
+            context_menu.addAction(self.action1)
 
             # Показываем контекстное меню в указанной позиции
             context_menu.exec_(self.tree.mapToGlobal(position))
 
-    # def setup_slider(self):
-    #     self.slider.setSingleStep(1000)
-    #
-    #     # Обновить положение слайдера при изменении позиции трека
-    #     self.player.positionChanged.connect(slider.setValue)
+    def do_action(self):
+        # Получить текущий элемент QTreeWidgetItem
+        current_item = self.tree.currentItem()
 
-    def self_act(self):
-        print('hi')
+        playlist_name = current_item.text(0)
+
+        # Выполнить нужные действия с выбранным плейлистом
+        # Например, открыть диалоговое окно выбора файла мп3
+        file_dialog = QFileDialog()
+        file_path = file_dialog.getOpenFileName(self, 'Выбрать файл:')[0]
+
+        # Добавить трек в базу данных с нужным playlist_id
+        cursor = self.con.cursor()
+        cursor.execute("SELECT id FROM playlist_s WHERE name = ?", (playlist_name,))
+        playlist_id = cursor.fetchone()[0]
+        cursor.execute("INSERT INTO tracks (playlist_id, title, track_link) VALUES (?, ?, ?)",
+                       (playlist_id, bs(file_path), file_path))
+        self.con.commit()
+        # cursor.close()
+        self.init_database()
+
+    def update_labels(self):
+        self.current_duration = self.player.duration() / 1000
+        current_position = self.player.position() / 1000
+        minutes_now = int(current_position // 60)
+        seconds_now = int(current_position % 60)
+        self.NowTime_label.setText(f'{minutes_now:02}:{seconds_now:02}')
+        remain = self.current_duration - current_position
+        minutes_remain = int(remain // 60)
+        seconds_remain = int((remain % 60))
+        self.RemainTime_label.setText(f'-{minutes_remain:02}:{seconds_remain:02}')
+
+    def exit_music(self):
+        self.player.setMedia(QMediaContent())
+        self.update_labels()
+        self.label.clear()
 
 
 if __name__ == "__main__":

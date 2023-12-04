@@ -8,6 +8,8 @@ class PlaylistExporter_file(QWidget):
     def __init__(self):
         super().__init__()
         self.tree = QTreeWidget(self)
+        self.tree.setHeaderHidden(True)
+
         layout = QVBoxLayout(self)
 
         layout.addWidget(self.tree)
@@ -55,12 +57,14 @@ class PlaylistExporter_file(QWidget):
             arr.append(track_name)
         for el in arr:
             new_arr += self.con.cursor().execute('''SELECT track_link FROM tracks WHERE title = ?''', (el,)).fetchall()
-        print(new_arr)
 
         file_dialog = QFileDialog()
         self.file_path = file_dialog.getExistingDirectory(self, "Выбрать папку")
-        print(self.file_path)
 
-        for file_name in new_arr:
-            shutil.copy(str(file_name[0]), self.file_path)
+        try:
+            for file_name in new_arr:
+                shutil.copy(str(file_name[0]), self.file_path)
+        except FileNotFoundError:
+            pass
+
         self.close()
