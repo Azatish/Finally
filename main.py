@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
         self.Volume_dial.valueChanged.connect(self.set_volume)
 
         # db + cursor
-        self.con = sqlite3.connect("playlist.db")
+        self.con = sqlite3.connect("dist/playlist.db")
         self.cur = self.con.cursor()
 
         #
@@ -126,11 +126,6 @@ class MainWindow(QMainWindow):
         info_about_ExportAction.setStatusTip('info')
         info_about_ExportAction.triggered.connect(self.infoExport)
         ExportMenu.addAction(info_about_ExportAction)
-
-        About_btn = QAction('About...', self)
-        Export_with_fileAction.setStatusTip('About...')
-        Export_with_fileAction.triggered.connect(self.about_programm)
-        self.menuBar().addAction(About_btn)
 
         # подключаем кнопки к функциям воспроизведения, паузы и приостановки трека в player-е
         self.Play_btn.clicked.connect(self.play_music)
