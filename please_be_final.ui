@@ -219,13 +219,6 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QLabel" name="RemainTime_label">
-           <property name="text">
-            <string>00:00</string>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
       </layout>
