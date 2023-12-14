@@ -6,7 +6,7 @@ from os.path import basename as bs
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QTime, QUrl, QTimer
-from PyQt5.QtGui import QKeySequence, QPixmap
+from PyQt5.QtGui import QPixmap, QKeySequence
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QAction, QMessageBox, QTreeWidgetItem, QFileDialog, \
                              QInputDialog, QMenu)
@@ -27,10 +27,6 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         uic.loadUi('please_be_final.ui', self)
-
-        pixmap = QPixmap('background.jpg')
-        print(self.label.size())
-        self.label.setPixmap(pixmap.scaled(self.label.size(), Qt.KeepAspectRatio))
 
         self.init_UI()
 
@@ -87,9 +83,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("???")
         self.setWindowFlags(
             Qt.CustomizeWindowHint | Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
-        pixmap = QPixmap('background.jpg')
-        self.label.setPixmap(pixmap.scaled(self.label.size(), Qt.KeepAspectRatio))
         self.setFixedSize(775, 608)
+        pixmap = QPixmap('background.jpg')
+        self.label.resize(433, 439)
+        self.label.setPixmap(pixmap.scaled(self.label.size(), Qt.KeepAspectRatioByExpanding))
+        print(self.label.size())
 
         # player от QMediaPlayer
         self.player = QMediaPlayer(self)
@@ -170,6 +168,7 @@ class MainWindow(QMainWindow):
         self.con.commit()
 
     def load_mp3(self, filename):  # загрузить в плеер музыку
+        print(filename)
         media = QUrl.fromLocalFile(filename)
         content = QMediaContent(media)
         self.player.setMedia(content)
@@ -188,7 +187,9 @@ class MainWindow(QMainWindow):
                 pixmap = QPixmap('background.jpg')
         else:
             pixmap = QPixmap('background.jpg')
-        self.label.setPixmap(pixmap.scaled(self.label.size(), Qt.KeepAspectRatio))
+
+        self.label.resize(433, 439)
+        self.label.setPixmap(pixmap.scaled(self.label.size(), Qt.KeepAspectRatioByExpanding))
         # self.label.setPixmap(pixmap)
 
     def set_volume(self):  # установить громкость музыки
@@ -198,7 +199,6 @@ class MainWindow(QMainWindow):
 
     def play_music(self):  # играть музыку
         self.check_isMedia_now('play')
-        print(self.player.currentMedia())
 
     def pause_music(self):  # пауза музыки
         self.check_isMedia_now('pause')
@@ -275,6 +275,7 @@ class MainWindow(QMainWindow):
 
     def track_clicked(self, item, column): # загрузка трека в player(QTreeWidget)
         track_link = item.toolTip(column)
+        print(track_link)
         self.load_mp3(track_link)
 
     def show_context_menu(self, position):  # контекстное меню для добавления треков в плейлист

@@ -41,7 +41,6 @@ class PlaylistExporter_file(QWidget):
                 for track in playlist_tracks[playlist_id]:
                     track_item = QTreeWidgetItem(playlist_item, [track[1]])
                     track_item.setToolTip(0, track[2])
-                    track_item.setFlags(track_item.flags() | ~Qt.ItemIsEditable)
 
         self.tree.show()
 
