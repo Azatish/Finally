@@ -39,9 +39,9 @@ class MainWindow(QMainWindow):
             'pause': self.player.pause,
             'stop': self.player.stop
         }
-        self.player.positionChanged.connect(self.position_changed)
-        self.player.durationChanged.connect(self.duration_changed)
-        self.timelime_slider.sliderMoved.connect(self.play_slider_changed)
+        self.player.positionChanged.connect(self.position_ch)
+        self.player.durationChanged.connect(self.duration_ch)
+        self.timelime_slider.sliderMoved.connect(self.slider_triggered)
 
         self.init_database()
 
@@ -159,6 +159,8 @@ class MainWindow(QMainWindow):
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.show_context_menu)
 
+        self.NowTime_label.setText('00:00:00')
+
     def Open_File(self):  # открытие файла
         fileName, _ = QFileDialog.getOpenFileName(self, "Open", '.', "*.mp3;; *.wav;; *.ogg;; *.flac;; *.m4a;; *.wma")
         self.previous_tracks.addItem(bs(fileName))
@@ -203,7 +205,7 @@ class MainWindow(QMainWindow):
 
     def stop_music(self):  # остановить воспроизведение музыки
         self.check_isMedia_now('stop')
-        # self.NowTime_label.setText('00:00')
+        self.NowTime_label.setText('00:00:00')
 
     def check_isMedia_now(self, action=None):  # проверка(занят ли плеер в данный момент)
         if self.player.media().isNull():
@@ -314,25 +316,26 @@ class MainWindow(QMainWindow):
 
     def exit_music(self):
         self.player.setMedia(QMediaContent())
+        self.NowTime_label.setText('00:00:00')
 
-    def duration_changed(self, duration):
-        self.timelime_slider.setRange(0, round(duration / 2))
+    def duration_ch(self, duration):
+        self.timelime_slider.setRange(0, duration)
 
-    def position_changed(self, position):
+    def position_ch(self, position):
         if(self.timelime_slider.maximum() != self.player.duration()):
             self.timelime_slider.setMaximum(round(self.player.duration() / 2))
 
         self.timelime_slider.setValue(position)
 
-        hours = round(((position / 2600000) % 24), 1)
-        seconds = round(((position / 1000) % 60), 1)
-        minutes = round(((position / 60000) % 60), 1)
+        seconds = (position / 1000) % 60
+        minutes = (position / 60000) % 60
+        hours = (position / 2600000) % 24
         time = QTime(round(hours), round(minutes), round(seconds))
 
         if position != self.player.duration():
             self.NowTime_label.setText(time.toString())
 
-    def play_slider_changed(self, position):
+    def slider_triggered(self, position):
         self.player.setPosition(position)
 
 
