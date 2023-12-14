@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         self.Volume_dial.valueChanged.connect(self.set_volume)
 
         # db + cursor
-        self.con = sqlite3.connect("dist/playlist.db")
+        self.con = sqlite3.connect("playlist.db")
         self.cur = self.con.cursor()
 
         #

@@ -18,7 +18,7 @@ class PlaylistExporter_txt(QWidget):
         self.setMaximumSize(400, 300)
 
         # Подключаемся к базе данных
-        self.con = sqlite3.connect("dist/playlist.db")
+        self.con = sqlite3.connect("playlist.db")
         cursor = self.con.cursor()
 
         cursor = self.con.cursor()
